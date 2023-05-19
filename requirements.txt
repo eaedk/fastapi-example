@@ -1,0 +1,5 @@
+fastapi[all]
+pandas
+black
+scikit-learn
+tabulate
