@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # logging.error('This is an error message')
 # logging.critical('This is a critical message')
 
-# Util Functions
+# Util Functions & Classes
 def loading(fp):
     with open(fp, "rb") as f:
         data = pickle.load(f)
@@ -24,40 +24,11 @@ def loading(fp):
     print(f"INFO: Loaded data : {data}")
     return data
 
-
-# API
-app = FastAPI(title="API")
-ml_objects = loading(fp=os.path.join("assets", "ml", "crop_recommandation2.pkl"))
-## Extract the ml components
-model = ml_objects["model"]
-scaler = ml_objects["scaler"].set_output(transform="pandas")
-labels = ml_objects["labels"]
-#  = ml_objects[""]
-
-
-# Endpoints
-@app.get("/")
-def root():
-    return {"API": " This is an API to ... ."}
-
-@app.get("/checkup")
-def test(a:Optional[int], b:int):
-    return {"a":a, "b":b}
-
-## ML endpoint
-@app.post("/predict")
-def make_prediction(N:float, P:float, K:float, temperature:float, humidity:float, ph:float, rainfall:float):
-    """Make prediction with the passed data
+def predict(df, endpoint="simple"):
+    """Take a dataframe as input and use it to make predictions
     """
     
-    df = pd.DataFrame(
-        {
-            "N":[N], "P":[P], "K":[K], "temperature":[temperature], "humidity":[humidity], "ph":[ph], "rainfall":[rainfall]
-        }
-    )
-    
-
-    print(f"{df.to_markdown()}\n")
+    print(f"[Info] 'predict' function has been called through the endpoint '{endpoint}'. \n{df.to_markdown()}\n")
     logger.info(f"{df.to_markdown()}")
 
     # scaling 
@@ -92,10 +63,88 @@ def make_prediction(N:float, P:float, K:float, temperature:float, humidity:float
     # parsed = json.loads(df.to_json(orient="index")) # or
     parsed = df.to_dict('records')
 
+    return parsed
+
+## INPUT MODELING
+class Land(BaseModel):
+    """Modeling of one input data in a type-restricted dictionary-like format
+
+    column_name : variable type # strictly respect the name in the dataframe header.
+
+    eg.:
+    =========
+    customer_age : int
+    gender : Literal['male', 'female', 'other']
+    """
+    N:float
+    P:float
+    K:float
+    temperature:float
+    humidity:float
+    ph:float
+    rainfall:float
+
+class Lands(BaseModel):
+    inputs: List[Land]
+
+    def return_list_of_dict(
+        cls,
+    ):
+        # return [land.dict() for land in cls.inputs]
+        return [i.dict() for i in cls.inputs]
+
+
+# API
+app = FastAPI(title="API")
+ml_objects = loading(fp=os.path.join("assets", "ml", "crop_recommandation2.pkl"))
+## Extract the ml components
+model = ml_objects["model"]
+scaler = ml_objects["scaler"].set_output(transform="pandas")
+labels = ml_objects["labels"]
+#  = ml_objects[""]
+
+
+# Endpoints
+@app.get("/")
+def root():
+    return {"API": " This is an API to ... ."}
+
+@app.get("/checkup")
+def test(a:Optional[int], b:int):
+    return {"a":a, "b":b}
+
+## ML endpoint
+@app.post("/predict")
+def make_prediction(N:float, P:float, K:float, temperature:float, humidity:float, ph:float, rainfall:float):
+    """Make prediction with the passed data
+    """
+    
+    df = pd.DataFrame(
+        {
+            "N":[N], "P":[P], "K":[K], "temperature":[temperature], "humidity":[humidity], "ph":[ph], "rainfall":[rainfall]
+        }
+    )
+    
+    parsed = predict(df=df) #df.to_dict('records')
+
     return {
         "output": parsed,
     }
 
+@app.post("/predict_multi")
+def make_multi_prediction(multi_lands:Lands):
+    """Make prediction with the passed data
+    """
+    print(f"Mutiple inputs passed: {multi_lands}\n")
+    df = pd.DataFrame(multi_lands.return_list_of_dict())
+    
+    parsed = predict(df=df, endpoint="multi inputs") #df.to_dict('records')
+
+    return {
+        "output": parsed,
+        "author": "Stella Archar",
+        "api_version": ";)",
+    }
 
 if __name__ == "__main__":
     uvicorn.run("main:app", reload=True)
