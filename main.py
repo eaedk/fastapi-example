@@ -8,7 +8,8 @@ import os
 import json
 import logging
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 # logging.debug('This is a debug message')
 # logging.info('This is an info message')
@@ -30,13 +31,14 @@ def predict(df, endpoint="simple"):
     """Take a dataframe as input and use it to make predictions"""
 
     print(
-        f"[Info] 'predict' function has been called through the endpoint '{endpoint}'. \n{df.to_markdown()}\n"
+        f"[Info] 'predict' function has been called through the endpoint '{endpoint}'.\n"
     )
-    logger.info(f"{df.to_markdown()}")
+    
+    logging.info(f" \n{df.to_markdown()}")
 
     # scaling
     scaled_df = scaler.transform(df)
-    print(f"INFO: Scaler output is of type {type(scaled_df)}")
+    logging.info(f"     Scaler output is of type {type(scaled_df)}")
 
     # prediction
     prediction = model.predict_proba(scaled_df)
